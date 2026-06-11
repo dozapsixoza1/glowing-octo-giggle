@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 // ============================================================
 // CONSTANTS & CONFIG
 // ============================================================
-const BACKEND = "https://your-backend.railway.app"; // замени на свой URL
+const BACKEND = "https://automatic-funicular-ov9e.vercel.app"; // замени на свой URL
 
 const RARITY_COLORS = {
   common: "#888",
