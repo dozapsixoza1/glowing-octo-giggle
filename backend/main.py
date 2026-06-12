@@ -8,6 +8,8 @@ import hashlib
 import hmac
 import time
 import os
+import random
+import string
 from datetime import datetime, date
 
 app = FastAPI(title="Justgift API")
@@ -22,7 +24,7 @@ app.add_middleware(
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8667961704:AAGLpbPSMvcqXDD1sgmRTG2_FtwfHxpZJWI")
 ADMIN_IDS = [8526401545]
-DB_PATH = "justgift.db"
+DB_PATH = os.getenv("DB_PATH", "justgift.db")
 
 CHANNEL_ID = "@justgif_t"
 CHAT_ID = "@justgiftchat"
@@ -98,6 +100,9 @@ def init_db():
         total_won INTEGER DEFAULT 0,
         cases_opened INTEGER DEFAULT 0,
         last_daily TEXT,
+        referred_by INTEGER DEFAULT NULL,
+        referral_count INTEGER DEFAULT 0,
+        referral_earned INTEGER DEFAULT 0,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )''')
     c.execute('''CREATE TABLE IF NOT EXISTS transactions (
@@ -118,14 +123,50 @@ def init_db():
         rarity TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )''')
+    # НОВОЕ: промокоды
+    c.execute('''CREATE TABLE IF NOT EXISTS promo_codes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        stars INTEGER NOT NULL,
+        max_uses INTEGER DEFAULT 1,
+        used_count INTEGER DEFAULT 0,
+        expires_at TEXT DEFAULT NULL,
+        created_by INTEGER,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
+    # НОВОЕ: кто активировал промокод
+    c.execute('''CREATE TABLE IF NOT EXISTS promo_uses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT NOT NULL,
+        tg_id INTEGER NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(code, tg_id)
+    )''')
     conn.commit()
+
+    # Миграция: добавить реферальные колонки если их нет
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER DEFAULT NULL")
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN referral_earned INTEGER DEFAULT 0")
+        conn.commit()
+    except Exception:
+        pass
+
     conn.close()
 
 init_db()
 
 # === AUTH ===
 def verify_telegram_data(init_data: str) -> Optional[dict]:
-    """Verify Telegram WebApp init data"""
     try:
         parsed = {}
         for item in init_data.split("&"):
@@ -142,17 +183,18 @@ def verify_telegram_data(init_data: str) -> Optional[dict]:
         computed = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
         
         if computed == hash_val:
-            user_str = parsed.get("user", "{}")
+            import urllib.parse
+            user_str = urllib.parse.unquote(parsed.get("user", "{}"))
             return json.loads(user_str)
         return None
-    except Exception:
+    except Exception as e:
+        print("verify error:", e)
         return None
 
 def get_current_user(x_init_data: str = Header(None)):
     if not x_init_data:
         raise HTTPException(status_code=401, detail="No auth")
     
-    # Dev mode — accept plain user_id for testing
     if x_init_data.startswith("dev:"):
         tg_id = int(x_init_data.split(":")[1])
         return {"id": tg_id, "first_name": "Dev User"}
@@ -162,18 +204,25 @@ def get_current_user(x_init_data: str = Header(None)):
         raise HTTPException(status_code=401, detail="Invalid auth")
     return user
 
-def get_or_create_user(tg_user: dict) -> dict:
+def get_or_create_user(tg_user: dict, ref_id: int = None) -> dict:
     conn = get_db()
     c = conn.cursor()
     tg_id = tg_user["id"]
     
     user = c.execute("SELECT * FROM users WHERE tg_id = ?", (tg_id,)).fetchone()
     if not user:
+        referred_by = ref_id if ref_id and ref_id != tg_id else None
         c.execute(
-            "INSERT INTO users (tg_id, username, first_name, last_name) VALUES (?,?,?,?)",
-            (tg_id, tg_user.get("username"), tg_user.get("first_name"), tg_user.get("last_name"))
+            "INSERT INTO users (tg_id, username, first_name, last_name, referred_by) VALUES (?,?,?,?,?)",
+            (tg_id, tg_user.get("username"), tg_user.get("first_name"), tg_user.get("last_name"), referred_by)
         )
         conn.commit()
+        # Если пришёл по реферале — начислить бонус рефереру
+        if referred_by:
+            REFERRAL_BONUS = 25  # звёзд рефереру
+            c.execute("UPDATE users SET balance = balance + ?, referral_count = referral_count + 1, referral_earned = referral_earned + ? WHERE tg_id = ?",
+                      (REFERRAL_BONUS, REFERRAL_BONUS, referred_by))
+            conn.commit()
         user = c.execute("SELECT * FROM users WHERE tg_id = ?", (tg_id,)).fetchone()
     
     result = dict(user)
@@ -183,8 +232,9 @@ def get_or_create_user(tg_user: dict) -> dict:
 # === ROUTES ===
 
 @app.get("/api/me")
-def get_me(tg_user=Depends(get_current_user)):
-    user = get_or_create_user(tg_user)
+def get_me(ref: Optional[str] = None, tg_user=Depends(get_current_user)):
+    ref_id = int(ref) if ref and ref.isdigit() else None
+    user = get_or_create_user(tg_user, ref_id)
     return user
 
 @app.post("/api/me/photo")
@@ -202,8 +252,6 @@ def get_cases():
 
 @app.post("/api/cases/{case_type}/open")
 def open_case(case_type: str, tg_user=Depends(get_current_user)):
-    import random
-    
     if case_type not in CASES:
         raise HTTPException(status_code=404, detail="Case not found")
     
@@ -211,18 +259,15 @@ def open_case(case_type: str, tg_user=Depends(get_current_user)):
     user = get_or_create_user(tg_user)
     tg_id = tg_user["id"]
     
-    # Daily case check
     if case_type == "daily":
         today = date.today().isoformat()
         if user.get("last_daily") == today:
             raise HTTPException(status_code=400, detail="Ежедневный кейс уже получен сегодня")
     else:
-        # Check balance
         price = case["price"]
         if user["balance"] < price:
             raise HTTPException(status_code=400, detail="Недостаточно звёзд")
     
-    # Spin the wheel
     items = case["items"]
     total = sum(i["chance"] for i in items)
     roll = random.uniform(0, total)
@@ -234,7 +279,6 @@ def open_case(case_type: str, tg_user=Depends(get_current_user)):
             won_item = item
             break
     
-    # Update DB
     conn = get_db()
     c = conn.cursor()
     
@@ -259,12 +303,202 @@ def open_case(case_type: str, tg_user=Depends(get_current_user)):
     }
 
 def _generate_spin_sequence(items, won_item, count=30):
-    import random
     seq = []
     for _ in range(count - 1):
         seq.append(random.choice(items))
     seq.append(won_item)
     return seq
+
+# === REFERRALS ===
+
+@app.get("/api/referrals")
+def get_referrals(tg_user=Depends(get_current_user)):
+    tg_id = tg_user["id"]
+    conn = get_db()
+    user = dict(conn.execute("SELECT referral_count, referral_earned FROM users WHERE tg_id = ?", (tg_id,)).fetchone() or {})
+    refs = conn.execute(
+        "SELECT first_name, username, created_at FROM users WHERE referred_by = ? ORDER BY created_at DESC LIMIT 50",
+        (tg_id,)
+    ).fetchall()
+    conn.close()
+    return {
+        "referral_count": user.get("referral_count", 0),
+        "referral_earned": user.get("referral_earned", 0),
+        "referral_bonus_per_user": 25,
+        "referrals": [dict(r) for r in refs]
+    }
+
+# === PROMO CODES ===
+
+@app.post("/api/promo/activate")
+def activate_promo(data: dict, tg_user=Depends(get_current_user)):
+    code = (data.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(status_code=400, detail="Введите промокод")
+    
+    tg_id = tg_user["id"]
+    conn = get_db()
+    c = conn.cursor()
+    
+    promo = c.execute("SELECT * FROM promo_codes WHERE code = ?", (code,)).fetchone()
+    if not promo:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Промокод не найден")
+    
+    promo = dict(promo)
+    
+    # Проверить срок
+    if promo["expires_at"] and promo["expires_at"] < datetime.now().isoformat():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Промокод истёк")
+    
+    # Проверить лимит
+    if promo["used_count"] >= promo["max_uses"]:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Промокод уже исчерпан")
+    
+    # Проверить повторную активацию
+    already = c.execute("SELECT 1 FROM promo_uses WHERE code = ? AND tg_id = ?", (code, tg_id)).fetchone()
+    if already:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Вы уже активировали этот промокод")
+    
+    stars = promo["stars"]
+    c.execute("UPDATE users SET balance = balance + ? WHERE tg_id = ?", (stars, tg_id))
+    c.execute("UPDATE promo_codes SET used_count = used_count + 1 WHERE code = ?", (code,))
+    c.execute("INSERT INTO promo_uses (code, tg_id) VALUES (?, ?)", (code, tg_id))
+    conn.commit()
+    
+    user = dict(c.execute("SELECT balance FROM users WHERE tg_id = ?", (tg_id,)).fetchone())
+    conn.close()
+    
+    return {"ok": True, "stars": stars, "new_balance": user["balance"]}
+
+# === ADMIN ===
+
+@app.post("/api/admin/promo/create")
+def admin_create_promo(data: dict, tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    
+    code = (data.get("code") or "").strip().upper()
+    if not code:
+        # Генерируем случайный
+        code = "GIFT" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
+    stars = int(data.get("stars", 0))
+    max_uses = int(data.get("max_uses", 1))
+    expires_at = data.get("expires_at")  # ISO строка или null
+    
+    if stars < 1:
+        raise HTTPException(status_code=400, detail="Укажите количество звёзд")
+    
+    conn = get_db()
+    try:
+        conn.execute(
+            "INSERT INTO promo_codes (code, stars, max_uses, expires_at, created_by) VALUES (?,?,?,?,?)",
+            (code, stars, max_uses, expires_at, tg_user["id"])
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Такой промокод уже существует")
+    conn.close()
+    return {"ok": True, "code": code, "stars": stars, "max_uses": max_uses}
+
+@app.get("/api/admin/promos")
+def admin_get_promos(tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    conn = get_db()
+    promos = conn.execute("SELECT * FROM promo_codes ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return [dict(p) for p in promos]
+
+@app.delete("/api/admin/promo/{code}")
+def admin_delete_promo(code: str, tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    conn = get_db()
+    conn.execute("DELETE FROM promo_codes WHERE code = ?", (code.upper(),))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+@app.post("/api/admin/broadcast")
+async def admin_broadcast(data: dict, tg_user=Depends(get_current_user)):
+    """Рассылка через бот — вызывает внутренний эндпоинт бота"""
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    
+    text = data.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Текст не может быть пустым")
+    
+    conn = get_db()
+    users = conn.execute("SELECT tg_id FROM users").fetchall()
+    conn.close()
+    
+    import httpx
+    BOT_TOKEN_VAL = os.getenv("BOT_TOKEN", BOT_TOKEN)
+    sent = 0
+    failed = 0
+    
+    async with httpx.AsyncClient(timeout=30) as client:
+        for u in users:
+            try:
+                resp = await client.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN_VAL}/sendMessage",
+                    json={
+                        "chat_id": u["tg_id"],
+                        "text": text,
+                        "parse_mode": "HTML"
+                    }
+                )
+                if resp.status_code == 200:
+                    sent += 1
+                else:
+                    failed += 1
+            except Exception:
+                failed += 1
+    
+    return {"ok": True, "sent": sent, "failed": failed, "total": len(users)}
+
+@app.post("/api/admin/give-stars")
+def admin_give_stars(data: dict, tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    target_id = data["tg_id"]
+    amount = int(data["amount"])
+    
+    conn = get_db()
+    conn.execute("UPDATE users SET balance = balance + ? WHERE tg_id = ?", (amount, target_id))
+    conn.execute("INSERT INTO transactions (tg_id, type, amount, status) VALUES (?,?,?,?)",
+                 (target_id, "admin_gift", amount, "completed"))
+    conn.commit()
+    conn.close()
+    return {"ok": True, "message": f"Выдано {amount} звёзд пользователю {target_id}"}
+
+@app.get("/api/admin/users")
+def admin_get_users(tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    conn = get_db()
+    users = conn.execute("SELECT * FROM users ORDER BY balance DESC LIMIT 100").fetchall()
+    conn.close()
+    return [dict(u) for u in users]
+
+@app.get("/api/admin/transactions")
+def admin_get_transactions(tg_user=Depends(get_current_user)):
+    if tg_user["id"] not in ADMIN_IDS:
+        raise HTTPException(status_code=403)
+    conn = get_db()
+    txs = conn.execute("SELECT * FROM transactions ORDER BY created_at DESC LIMIT 100").fetchall()
+    conn.close()
+    return [dict(t) for t in txs]
+
+# === DEPOSIT / WITHDRAW ===
 
 @app.post("/api/deposit/request")
 def request_deposit(data: dict, tg_user=Depends(get_current_user)):
@@ -283,12 +517,10 @@ def request_deposit(data: dict, tg_user=Depends(get_current_user)):
     
     bot_username = os.getenv("BOT_USERNAME", "justgift_bot")
     bot_url = f"https://t.me/{bot_username}?start=pay_{tx_id}_{amount}"
-    
     return {"tx_id": tx_id, "bot_url": bot_url, "amount": amount}
 
 @app.post("/api/deposit/confirm")
 def confirm_deposit(data: dict):
-    """Called by bot after payment received"""
     secret = data.get("secret")
     if secret != os.getenv("INTERNAL_SECRET", "justgift_internal_secret"):
         raise HTTPException(status_code=403)
@@ -298,12 +530,10 @@ def confirm_deposit(data: dict):
     amount = data["amount"]
     
     conn = get_db()
-    c = conn.cursor()
-    c.execute("UPDATE transactions SET status = 'completed' WHERE id = ? AND tg_id = ?", (tx_id, tg_id))
-    c.execute("UPDATE users SET balance = balance + ? WHERE tg_id = ?", (amount, tg_id))
+    conn.execute("UPDATE transactions SET status = 'completed' WHERE id = ? AND tg_id = ?", (tx_id, tg_id))
+    conn.execute("UPDATE users SET balance = balance + ? WHERE tg_id = ?", (amount, tg_id))
     conn.commit()
     conn.close()
-    
     return {"ok": True}
 
 @app.post("/api/withdraw/request")
@@ -328,7 +558,6 @@ def request_withdraw(data: dict, tg_user=Depends(get_current_user)):
     
     bot_username = os.getenv("BOT_USERNAME", "justgift_bot")
     bot_url = f"https://t.me/{bot_username}?start=withdraw_{tx_id}_{amount}"
-    
     return {"tx_id": tx_id, "bot_url": bot_url, "amount": amount}
 
 @app.get("/api/history")
@@ -340,41 +569,3 @@ def get_history(tg_user=Depends(get_current_user)):
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-# === ADMIN ===
-@app.post("/api/admin/give-stars")
-def admin_give_stars(data: dict, tg_user=Depends(get_current_user)):
-    if tg_user["id"] not in ADMIN_IDS:
-        raise HTTPException(status_code=403, detail="Нет доступа")
-    
-    target_id = data["tg_id"]
-    amount = int(data["amount"])
-    
-    conn = get_db()
-    conn.execute("UPDATE users SET balance = balance + ? WHERE tg_id = ?", (amount, target_id))
-    conn.execute("INSERT INTO transactions (tg_id, type, amount, status) VALUES (?,?,?,?)",
-                 (target_id, "admin_gift", amount, "completed"))
-    conn.commit()
-    conn.close()
-    
-    return {"ok": True, "message": f"Выдано {amount} звёзд пользователю {target_id}"}
-
-@app.get("/api/admin/users")
-def admin_get_users(tg_user=Depends(get_current_user)):
-    if tg_user["id"] not in ADMIN_IDS:
-        raise HTTPException(status_code=403)
-    
-    conn = get_db()
-    users = conn.execute("SELECT * FROM users ORDER BY balance DESC LIMIT 100").fetchall()
-    conn.close()
-    return [dict(u) for u in users]
-
-@app.get("/api/admin/transactions")
-def admin_get_transactions(tg_user=Depends(get_current_user)):
-    if tg_user["id"] not in ADMIN_IDS:
-        raise HTTPException(status_code=403)
-    
-    conn = get_db()
-    txs = conn.execute("SELECT * FROM transactions ORDER BY created_at DESC LIMIT 100").fetchall()
-    conn.close()
-    return [dict(t) for t in txs]
