@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+эimport { useState, useEffect, useCallback } from "react";
 
 // ============================================================
 // CONSTANTS & CONFIG
@@ -334,6 +334,13 @@ const styles = `
   .nav-btn:active { background: var(--surface2); }
 
   .nav-btn svg { width: 22px; height: 22px; }
+
+  /* EMOJI — принудительно нативный шрифт */
+  .emoji {
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Android Emoji", sans-serif;
+    font-style: normal;
+    display: inline-block;
+  }
 
   /* MODAL OVERLAY */
   .modal-overlay {
@@ -979,8 +986,48 @@ function CaseIcon({ color }) {
   );
 }
 
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+      <path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+    </svg>
+  );
+}
+
+function SendIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  );
+}
+
+function TicketIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 9a3 3 0 010 6v2a2 2 0 002 2h16a2 2 0 002-2v-2a3 3 0 010-6V7a2 2 0 00-2-2H4a2 2 0 00-2 2v2z"/>
+      <line x1="9" y1="12" x2="9.01" y2="12" strokeWidth="3"/>
+      <line x1="15" y1="12" x2="15.01" y2="12" strokeWidth="3"/>
+    </svg>
+  );
+}
+
 function Toast({ msg }) {
   return <div className="toast">{msg}</div>;
+
 }
 
 // ============================================================
@@ -1398,7 +1445,9 @@ function ReferralPage({ user, showToast }) {
 
   return (
     <div className="section">
-      <div className="section-title">🔗 Реферальная программа</div>
+      <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <UsersIcon size={14} /> Реферальная программа
+      </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>За каждого приглашённого друга:</div>
@@ -1438,7 +1487,9 @@ function ReferralPage({ user, showToast }) {
 
       <div className="divider" />
 
-      <div className="section-title">🎟 Промокод</div>
+      <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <TicketIcon size={14} /> Промокод
+      </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <input
           className="input"
@@ -1530,9 +1581,9 @@ function AdminPage({ user }) {
   }
 
   const tabs = [
-    { key: "users", label: "👥 Юзеры" },
-    { key: "broadcast", label: "📢 Рассылка" },
-    { key: "promo", label: "🎟 Промо" },
+    { key: "users", label: "Юзеры", Icon: UsersIcon },
+    { key: "broadcast", label: "Рассылка", Icon: SendIcon },
+    { key: "promo", label: "Промо", Icon: TicketIcon },
   ];
 
   return (
@@ -1544,13 +1595,15 @@ function AdminPage({ user }) {
       </div>
 
       {/* Подтабы */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
         {tabs.map(t => (
           <button key={t.key} onClick={() => setAdminTab(t.key)}
-            style={{ padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, border: "1px solid",
+            style={{ flex: 1, padding: "8px 6px", borderRadius: 12, fontSize: 12, fontWeight: 600, border: "1px solid",
               borderColor: adminTab === t.key ? "var(--lime)" : "var(--border)",
               background: adminTab === t.key ? "var(--lime)" : "var(--surface2)",
-              color: adminTab === t.key ? "#0F0F08" : "var(--text)", cursor: "pointer" }}>
+              color: adminTab === t.key ? "#0F0F08" : "var(--text)", cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <t.Icon size={16} />
             {t.label}
           </button>
         ))}
@@ -1587,7 +1640,9 @@ function AdminPage({ user }) {
 
       {/* BROADCAST */}
       {adminTab === "broadcast" && <>
-        <div className="section-title">📢 Рассылка всем пользователям</div>
+        <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <SendIcon size={14} /> Рассылка всем пользователям
+        </div>
         <div className="input-group">
           <div className="input-label">Текст сообщения (поддерживается HTML)</div>
           <textarea className="input" placeholder="Напишите текст рассылки..." value={broadcastText}
@@ -1608,7 +1663,9 @@ function AdminPage({ user }) {
 
       {/* PROMO */}
       {adminTab === "promo" && <>
-        <div className="section-title">Создать промокод</div>
+        <div className="section-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <TicketIcon size={14} /> Создать промокод
+        </div>
         <div className="input-group">
           <div className="input-label">Код (пусто = авто)</div>
           <input className="input" placeholder="SUMMER50" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} />
@@ -1819,7 +1876,7 @@ export default function App() {
             <WalletIcon /> Кошелёк
           </button>
           <button className={`nav-btn ${tab === "referral" ? "active" : ""}`} onClick={() => setTab("referral")}>
-            <GiftIcon /> Рефералы
+            <LinkIcon /> Рефералы
           </button>
           <button className={`nav-btn ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}>
             <UserIcon /> Профиль
