@@ -1357,9 +1357,112 @@ function ProfilePage({ user, onOpenWallet }) {
 }
 
 // ============================================================
+// REFERRAL PAGE
+// ============================================================
+function ReferralPage({ user, showToast }) {
+  const [data, setData] = useState(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMsg, setPromoMsg] = useState("");
+  const [promoErr, setPromoErr] = useState("");
+
+  useEffect(() => {
+    api("/api/referrals").then(setData).catch(() => {});
+  }, []);
+
+  const tgId = user?.tg_id;
+  const botUsername = "justgift_bot"; // замени на свой
+  const refLink = tgId ? `https://t.me/${botUsername}?start=ref_${tgId}` : "";
+
+  function copyRef() {
+    if (!refLink) return;
+    navigator.clipboard?.writeText(refLink).catch(() => {});
+    showToast("Ссылка скопирована!");
+  }
+
+  async function activatePromo() {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoMsg("");
+    setPromoErr("");
+    try {
+      const res = await api("/api/promo/activate", { method: "POST", body: { code: promoCode.trim() } });
+      setPromoMsg(`✅ Получено ${res.stars} ⭐! Новый баланс: ${res.new_balance}`);
+      setPromoCode("");
+    } catch (e) {
+      setPromoErr(e.message);
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  return (
+    <div className="section">
+      <div className="section-title">🔗 Реферальная программа</div>
+
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>За каждого приглашённого друга:</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: "var(--lime)", marginBottom: 12 }}>+25 ⭐</div>
+        <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+          <div style={{ flex: 1, background: "var(--surface2)", borderRadius: 10, padding: "10px 0", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{data?.referral_count ?? 0}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>Приглашено</div>
+          </div>
+          <div style={{ flex: 1, background: "var(--surface2)", borderRadius: 10, padding: "10px 0", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "var(--lime)" }}>{data?.referral_earned ?? 0} ⭐</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>Заработано</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--muted)", wordBreak: "break-all", marginBottom: 10, background: "var(--surface2)", borderRadius: 8, padding: "8px 12px", fontFamily: "monospace" }}>
+          {refLink || "Загрузка..."}
+        </div>
+        <button className="btn btn-primary" onClick={copyRef} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          📋 Скопировать ссылку
+        </button>
+      </div>
+
+      {data?.referrals?.length > 0 && (
+        <>
+          <div className="section-title">Мои рефералы</div>
+          {data.referrals.map((r, i) => (
+            <div key={i} className="history-item">
+              <div className="history-left">
+                <div className="history-case">{r.first_name || "Пользователь"}{r.username ? ` @${r.username}` : ""}</div>
+                <div className="history-date">{new Date(r.created_at).toLocaleDateString("ru-RU")}</div>
+              </div>
+              <div style={{ color: "var(--lime)", fontWeight: 700, fontSize: 14 }}>+25 ⭐</div>
+            </div>
+          ))}
+        </>
+      )}
+
+      <div className="divider" />
+
+      <div className="section-title">🎟 Промокод</div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <input
+          className="input"
+          placeholder="Введите промокод"
+          value={promoCode}
+          onChange={e => setPromoCode(e.target.value.toUpperCase())}
+          onKeyDown={e => e.key === "Enter" && activatePromo()}
+          style={{ flex: 1, textTransform: "uppercase", letterSpacing: 1 }}
+        />
+        <button className="btn btn-primary" onClick={activatePromo} disabled={promoLoading} style={{ whiteSpace: "nowrap", padding: "0 16px" }}>
+          {promoLoading ? "..." : "Применить"}
+        </button>
+      </div>
+      {promoMsg && <div className="success-text">{promoMsg}</div>}
+      {promoErr && <div className="error-text">{promoErr}</div>}
+    </div>
+  );
+}
+
+// ============================================================
 // ADMIN PAGE
 // ============================================================
 function AdminPage({ user }) {
+  const [adminTab, setAdminTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [targetId, setTargetId] = useState("");
   const [giveAmount, setGiveAmount] = useState("");
@@ -1367,13 +1470,26 @@ function AdminPage({ user }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Рассылка
+  const [broadcastText, setBroadcastText] = useState("");
+  const [broadcastResult, setBroadcastResult] = useState(null);
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+
+  // Промокоды
+  const [promos, setPromos] = useState([]);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoStars, setPromoStars] = useState("");
+  const [promoUses, setPromoUses] = useState("1");
+  const [promoMsg, setPromoMsg] = useState("");
+  const [promoErr, setPromoErr] = useState("");
+
   useEffect(() => {
     api("/api/admin/users").then(setUsers).catch(() => {});
+    api("/api/admin/promos").then(setPromos).catch(() => {});
   }, []);
 
   async function giveStars() {
-    setLoading(true);
-    setError(""); setMsg("");
+    setLoading(true); setError(""); setMsg("");
     try {
       const res = await api("/api/admin/give-stars", {
         method: "POST",
@@ -1381,11 +1497,43 @@ function AdminPage({ user }) {
       });
       setMsg(res.message);
       setUsers(u => u.map(x => x.tg_id === parseInt(targetId) ? { ...x, balance: x.balance + parseInt(giveAmount) } : x));
-    } catch (e) {
-      setError(e.message);
-    }
+    } catch (e) { setError(e.message); }
     setLoading(false);
   }
+
+  async function sendBroadcast() {
+    setBroadcastLoading(true); setBroadcastResult(null);
+    try {
+      const res = await api("/api/admin/broadcast", { method: "POST", body: { text: broadcastText } });
+      setBroadcastResult(res);
+      setBroadcastText("");
+    } catch (e) { setBroadcastResult({ error: e.message }); }
+    setBroadcastLoading(false);
+  }
+
+  async function createPromo() {
+    setPromoErr(""); setPromoMsg("");
+    try {
+      const res = await api("/api/admin/promo/create", {
+        method: "POST",
+        body: { code: promoCode, stars: parseInt(promoStars), max_uses: parseInt(promoUses) }
+      });
+      setPromoMsg(`✅ Создан: ${res.code}`);
+      setPromos(p => [{ ...res, used_count: 0 }, ...p]);
+      setPromoCode(""); setPromoStars(""); setPromoUses("1");
+    } catch (e) { setPromoErr(e.message); }
+  }
+
+  async function deletePromo(code) {
+    await api(`/api/admin/promo/${code}`, { method: "DELETE" });
+    setPromos(p => p.filter(x => x.code !== code));
+  }
+
+  const tabs = [
+    { key: "users", label: "👥 Юзеры" },
+    { key: "broadcast", label: "📢 Рассылка" },
+    { key: "promo", label: "🎟 Промо" },
+  ];
 
   return (
     <div className="section">
@@ -1395,31 +1543,105 @@ function AdminPage({ user }) {
         </div>
       </div>
 
-      <div className="section-title">Выдать звёзды</div>
-      <div className="input-group">
-        <div className="input-label">Telegram ID пользователя</div>
-        <input className="input" placeholder="123456789" value={targetId} onChange={e => setTargetId(e.target.value)} />
+      {/* Подтабы */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setAdminTab(t.key)}
+            style={{ padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, border: "1px solid",
+              borderColor: adminTab === t.key ? "var(--lime)" : "var(--border)",
+              background: adminTab === t.key ? "var(--lime)" : "var(--surface2)",
+              color: adminTab === t.key ? "#0F0F08" : "var(--text)", cursor: "pointer" }}>
+            {t.label}
+          </button>
+        ))}
       </div>
-      <div className="input-group">
-        <div className="input-label">Количество звёзд</div>
-        <input className="input" type="number" placeholder="100" value={giveAmount} onChange={e => setGiveAmount(e.target.value)} />
-      </div>
-      {error && <div className="error-text">{error}</div>}
-      {msg && <div className="success-text">{msg}</div>}
-      <button className="btn btn-primary" disabled={!targetId || !giveAmount || loading} onClick={giveStars} style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        {loading ? "Выдаю..." : <><StarIcon size={16} /> Выдать звёзды</>}
-      </button>
 
-      <div className="section-title">Пользователи</div>
-      {users.map(u => (
-        <div key={u.tg_id} className="user-row" onClick={() => setTargetId(String(u.tg_id))}>
-          <div className="user-row-left">
-            <div className="user-row-name">{u.first_name || "—"} {u.username ? `@${u.username}` : ""}</div>
-            <div className="user-row-id">ID: {u.tg_id}</div>
-          </div>
-          <div className="user-row-balance" style={{ display: "flex", alignItems: "center", gap: 4 }}>{u.balance} <StarIcon size={12} /></div>
+      {/* USERS */}
+      {adminTab === "users" && <>
+        <div className="section-title">Выдать звёзды</div>
+        <div className="input-group">
+          <div className="input-label">Telegram ID</div>
+          <input className="input" placeholder="123456789" value={targetId} onChange={e => setTargetId(e.target.value)} />
         </div>
-      ))}
+        <div className="input-group">
+          <div className="input-label">Количество звёзд</div>
+          <input className="input" type="number" placeholder="100" value={giveAmount} onChange={e => setGiveAmount(e.target.value)} />
+        </div>
+        {error && <div className="error-text">{error}</div>}
+        {msg && <div className="success-text">{msg}</div>}
+        <button className="btn btn-primary" disabled={!targetId || !giveAmount || loading} onClick={giveStars}
+          style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          {loading ? "Выдаю..." : <><StarIcon size={16} /> Выдать звёзды</>}
+        </button>
+        <div className="section-title">Пользователи ({users.length})</div>
+        {users.map(u => (
+          <div key={u.tg_id} className="user-row" onClick={() => setTargetId(String(u.tg_id))}>
+            <div className="user-row-left">
+              <div className="user-row-name">{u.first_name || "—"} {u.username ? `@${u.username}` : ""}</div>
+              <div className="user-row-id">ID: {u.tg_id} · рефералов: {u.referral_count || 0}</div>
+            </div>
+            <div className="user-row-balance" style={{ display: "flex", alignItems: "center", gap: 4 }}>{u.balance} <StarIcon size={12} /></div>
+          </div>
+        ))}
+      </>}
+
+      {/* BROADCAST */}
+      {adminTab === "broadcast" && <>
+        <div className="section-title">📢 Рассылка всем пользователям</div>
+        <div className="input-group">
+          <div className="input-label">Текст сообщения (поддерживается HTML)</div>
+          <textarea className="input" placeholder="Напишите текст рассылки..." value={broadcastText}
+            onChange={e => setBroadcastText(e.target.value)}
+            style={{ minHeight: 120, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }} />
+        </div>
+        <button className="btn btn-primary" onClick={sendBroadcast} disabled={!broadcastText.trim() || broadcastLoading}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 }}>
+          {broadcastLoading ? "Отправляю..." : "📢 Отправить рассылку"}
+        </button>
+        {broadcastResult && !broadcastResult.error && (
+          <div className="success-text">
+            ✅ Отправлено: {broadcastResult.sent} | Не доставлено: {broadcastResult.failed} | Всего: {broadcastResult.total}
+          </div>
+        )}
+        {broadcastResult?.error && <div className="error-text">❌ {broadcastResult.error}</div>}
+      </>}
+
+      {/* PROMO */}
+      {adminTab === "promo" && <>
+        <div className="section-title">Создать промокод</div>
+        <div className="input-group">
+          <div className="input-label">Код (пусто = авто)</div>
+          <input className="input" placeholder="SUMMER50" value={promoCode} onChange={e => setPromoCode(e.target.value.toUpperCase())} />
+        </div>
+        <div className="input-group">
+          <div className="input-label">Звёзд</div>
+          <input className="input" type="number" placeholder="50" value={promoStars} onChange={e => setPromoStars(e.target.value)} />
+        </div>
+        <div className="input-group">
+          <div className="input-label">Макс. использований</div>
+          <input className="input" type="number" placeholder="1" value={promoUses} onChange={e => setPromoUses(e.target.value)} />
+        </div>
+        {promoErr && <div className="error-text">{promoErr}</div>}
+        {promoMsg && <div className="success-text">{promoMsg}</div>}
+        <button className="btn btn-primary" onClick={createPromo} disabled={!promoStars}
+          style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          ✅ Создать промокод
+        </button>
+        <div className="section-title">Активные промокоды</div>
+        {promos.length === 0 && <div style={{ color: "var(--muted)", fontSize: 13 }}>Промокодов нет</div>}
+        {promos.map(p => (
+          <div key={p.code} className="user-row">
+            <div className="user-row-left">
+              <div className="user-row-name" style={{ fontFamily: "monospace", letterSpacing: 1 }}>{p.code}</div>
+              <div className="user-row-id">{p.stars} ⭐ · {p.used_count}/{p.max_uses} использований</div>
+            </div>
+            <button onClick={() => deletePromo(p.code)}
+              style={{ background: "none", border: "1px solid var(--danger)", color: "var(--danger)", borderRadius: 8, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>
+              ✕
+            </button>
+          </div>
+        ))}
+      </>}
     </div>
   );
 }
@@ -1449,7 +1671,10 @@ export default function App() {
       window.Telegram.WebApp.expand();
     }
 
-    api("/api/me").then(setUser).catch(console.error);
+    // Передаём ref из URL если есть
+    const urlRef = new URLSearchParams(window.location.search).get("ref");
+    const meUrl = urlRef ? `/api/me?ref=${urlRef}` : "/api/me";
+    api(meUrl).then(setUser).catch(console.error);
     api("/api/cases").then(setCases).catch(console.error);
   }, []);
 
@@ -1575,6 +1800,11 @@ export default function App() {
           <ProfilePage user={user} onOpenWallet={() => setShowWallet(true)} />
         )}
 
+        {/* REFERRAL TAB */}
+        {tab === "referral" && (
+          <ReferralPage user={user} showToast={showToast} />
+        )}
+
         {/* ADMIN TAB */}
         {tab === "admin" && isAdmin && (
           <AdminPage user={user} />
@@ -1587,6 +1817,9 @@ export default function App() {
           </button>
           <button className={`nav-btn ${tab === "wallet" ? "active" : ""}`} onClick={() => setTab("wallet")}>
             <WalletIcon /> Кошелёк
+          </button>
+          <button className={`nav-btn ${tab === "referral" ? "active" : ""}`} onClick={() => setTab("referral")}>
+            <GiftIcon /> Рефералы
           </button>
           <button className={`nav-btn ${tab === "profile" ? "active" : ""}`} onClick={() => setTab("profile")}>
             <UserIcon /> Профиль
