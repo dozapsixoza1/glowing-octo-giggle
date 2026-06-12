@@ -233,10 +233,10 @@ async def cb_admin_give(call: CallbackQuery):
 # --- Перехват текста для рассылки ---
 @dp.message(F.text & ~F.text.startswith("/"))
 async def handle_text(message: Message):
+    # Рассылка: ждём текст от админа
     if message.from_user.id in ADMIN_IDS and broadcast_pending.get(message.from_user.id) == "waiting":
         broadcast_pending.pop(message.from_user.id)
         text_to_send = message.text
-        # Выполняем рассылку
         async with httpx.AsyncClient(timeout=60) as client:
             resp = await client.post(
                 f"{BACKEND_URL}/api/admin/broadcast",
@@ -252,6 +252,13 @@ async def handle_text(message: Message):
             )
         else:
             await message.answer("❌ Ошибка при рассылке")
+        return
+
+    # Обычный пользователь написал что-то — отправляем в мини-приложение
+    await message.answer(
+        "🎁 Открой Justgift, чтобы играть!",
+        reply_markup=main_keyboard()
+    )
 
 # ============================================================
 # /give — выдать звёзды пользователю
