@@ -167,28 +167,63 @@ init_db()
 
 # === AUTH ===
 def verify_telegram_data(init_data: str) -> Optional[dict]:
+    """
+    Telegram WebApp initData verification.
+    initData приходит как URL-encoded строка, например:
+      user=%7B%22id%22%3A123%7D&auth_date=1234&hash=abc
+    """
     try:
-        parsed = {}
-        for item in init_data.split("&"):
-            if "=" in item:
-                k, v = item.split("=", 1)
-                parsed[k] = v
-        
+        import urllib.parse
+
+        # 1. Полностью декодируем строку (Telegram шлёт URL-encoded)
+        decoded = urllib.parse.unquote(init_data)
+
+        # 2. Парсим в dict — используем parse_qs с keep_blank_values
+        parsed_qs = urllib.parse.parse_qs(decoded, keep_blank_values=True)
+        # parse_qs возвращает списки, берём первый элемент
+        parsed = {k: v[0] for k, v in parsed_qs.items()}
+
         hash_val = parsed.pop("hash", None)
         if not hash_val:
-            return None
+            # Попробуем ещё раз через split — некоторые клиенты шлют не-encoded
+            parsed2 = {}
+            for item in init_data.split("&"):
+                if "=" in item:
+                    k, v = item.split("=", 1)
+                    parsed2[urllib.parse.unquote(k)] = urllib.parse.unquote(v)
+            hash_val = parsed2.pop("hash", None)
+            if not hash_val:
+                return None
+            parsed = parsed2
+
+        # 3. Строим data-check-string (ключи отсортированы, разделитель \n)
+        data_check = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
+
+        # 4. HMAC: secret = HMAC-SHA256("WebAppData", BOT_TOKEN)
+        #    computed = HMAC-SHA256(secret, data_check_string)
+        secret = hmac.new(
+            b"WebAppData",          # key
+            BOT_TOKEN.encode(),    # msg
+            hashlib.sha256
+        ).digest()
+        computed = hmac.new(
+            secret,                # key
+            data_check.encode(),   # msg
+            hashlib.sha256
+        ).hexdigest()
+
+        if hmac.compare_digest(computed, hash_val):
+            user_str = parsed.get("user", "{}")
+            # user может быть ещё раз URL-encoded внутри
+            try:
+                return json.loads(user_str)
+            except json.JSONDecodeError:
+                return json.loads(urllib.parse.unquote(user_str))
         
-        data_check = "\n".join(sorted([f"{k}={v}" for k, v in parsed.items()]))
-        secret = hmac.new("WebAppData".encode(), BOT_TOKEN.encode(), hashlib.sha256).digest()
-        computed = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
-        
-        if computed == hash_val:
-            import urllib.parse
-            user_str = urllib.parse.unquote(parsed.get("user", "{}"))
-            return json.loads(user_str)
+        print(f"HMAC mismatch. computed={computed[:16]}... got={hash_val[:16]}...")
         return None
     except Exception as e:
-        print("verify error:", e)
+        print("verify_telegram_data error:", e)
         return None
 
 def get_current_user(x_init_data: str = Header(None)):
@@ -236,6 +271,19 @@ def get_me(ref: Optional[str] = None, tg_user=Depends(get_current_user)):
     ref_id = int(ref) if ref and ref.isdigit() else None
     user = get_or_create_user(tg_user, ref_id)
     return user
+
+@app.get("/api/debug/auth")
+def debug_auth(x_init_data: str = Header(None)):
+    """Отладочный эндпоинт — показывает что пришло в заголовке и результат верификации"""
+    if not x_init_data:
+        return {"error": "no x-init-data header"}
+    result = verify_telegram_data(x_init_data)
+    return {
+        "raw_length": len(x_init_data),
+        "raw_preview": x_init_data[:120],
+        "verified": result is not None,
+        "user": result,
+    }
 
 @app.post("/api/me/photo")
 def update_photo(data: dict, tg_user=Depends(get_current_user)):
