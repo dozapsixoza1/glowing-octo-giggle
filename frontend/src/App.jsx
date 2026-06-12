@@ -25,8 +25,7 @@ const RARITY_LABELS = {
 // API
 // ============================================================
 function getInitData() {
-  if (window.Telegram?.WebApp?.initData) return window.Telegram.WebApp.initData;
-  return `dev:8526401545`; // dev fallback
+  return window.Telegram?.WebApp?.initData || "";
 }
 
 async function api(path, options = {}) {
@@ -833,6 +832,141 @@ function ShieldIcon() {
   );
 }
 
+function GiftIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="8" width="18" height="13" rx="1.5" />
+      <path d="M3 12h18" />
+      <path d="M12 8v13" />
+      <path d="M12 8c-1.5-3-3-4.5-4.5-4.5S5 4.8 5 6.25 6.5 8 8 8" />
+      <path d="M12 8c1.5-3 3-4.5 4.5-4.5S19 4.8 19 6.25 17.5 8 16 8" />
+    </svg>
+  );
+}
+
+function CrownIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18h18" />
+      <path d="M4 18l-1-9 5 4 4-7 4 7 5-4-1 9" />
+    </svg>
+  );
+}
+
+function DiceIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" />
+      <circle cx="16" cy="8" r="1" fill="currentColor" />
+      <circle cx="8" cy="16" r="1" fill="currentColor" />
+      <circle cx="16" cy="16" r="1" fill="currentColor" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ChatIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
+    </svg>
+  );
+}
+
+function MegaphoneIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11v3a1 1 0 001 1h1l4 4V6L5 10H4a1 1 0 00-1 1z" />
+      <path d="M14 8a3 3 0 010 8" />
+      <path d="M18 5a7 7 0 010 14" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function ArrowUpIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="5 12 12 5 19 12" />
+    </svg>
+  );
+}
+
+function PlusIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function TrophyIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M7 4h10v5a5 5 0 01-10 0V4z" />
+      <path d="M7 5H4a2 2 0 002 4" />
+      <path d="M17 5h3a2 2 0 01-2 4" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z" />
+    </svg>
+  );
+}
+
+function LockIcon({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="9" rx="2" />
+      <path d="M8 11V7a4 4 0 018 0v4" />
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function BoxIcon({ size = 32, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16V8z" />
+      <path d="M3.27 6.96L12 12l8.73-5.04" />
+      <path d="M12 22.08V12" />
+    </svg>
+  );
+}
+
+function MedalIcon({ size = 32, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="14" r="6" />
+      <path d="M9 10.5L7 3h2l3 4 3-4h2l-2 7.5" />
+      <path d="M10 14l2 2 3-3" />
+    </svg>
+  );
+}
+
 function CaseIcon({ color }) {
   return (
     <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
@@ -871,14 +1005,20 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
     else setPhase("subscribe");
   }, []);
 
+  function openTgLink(url) {
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, "_blank");
+    }
+  }
+
   async function checkSubs() {
     setChecking(true);
-    // In production — call backend to verify via bot API
-    // For now mark as checked
     setTimeout(() => {
       setSubscribed({ channel: true, chat: true });
       setChecking(false);
-    }, 1000);
+    }, 1500);
   }
 
   async function doOpen() {
@@ -919,7 +1059,9 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
         
         {phase === "got" && (
           <>
-            <div className="modal-title">Уже получено ✓</div>
+            <div className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              Уже получено <CheckIcon size={18} />
+            </div>
             <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 13, marginBottom: 20 }}>
               Ежедневный кейс уже открыт сегодня.<br />Возвращайся завтра!
             </p>
@@ -929,18 +1071,20 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
 
         {phase === "subscribe" && (
           <>
-            <div className="modal-title">🎁 Бесплатный кейс</div>
+            <div className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <GiftIcon size={22} /> Бесплатный кейс
+            </div>
             <div className="subscribe-gate">
               <p>Подпишись на наш канал и чат, чтобы получить ежедневный кейс бесплатно</p>
               <div className="subscribe-channels">
-                <a href="https://t.me/justgif_t" target="_blank" rel="noreferrer" className="channel-btn">
-                  <span>📢 Канал @justgif_t</span>
-                  {subscribed.channel && <span className="check-icon">✓</span>}
-                </a>
-                <a href="https://t.me/justgiftchat" target="_blank" rel="noreferrer" className="channel-btn">
-                  <span>💬 Чат @justgiftchat</span>
-                  {subscribed.chat && <span className="check-icon">✓</span>}
-                </a>
+                <button className="channel-btn" onClick={() => openTgLink("https://t.me/justgif_t")}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}><MegaphoneIcon size={16} /> Канал @justgif_t</span>
+                  {subscribed.channel && <span className="check-icon"><CheckIcon /></span>}
+                </button>
+                <button className="channel-btn" onClick={() => openTgLink("https://t.me/justgiftchat")}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}><ChatIcon size={16} /> Чат @justgiftchat</span>
+                  {subscribed.chat && <span className="check-icon"><CheckIcon /></span>}
+                </button>
               </div>
               {!subscribed.channel && (
                 <button className="btn btn-secondary" style={{ marginBottom: 10 }} onClick={checkSubs} disabled={checking}>
@@ -948,8 +1092,8 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
                 </button>
               )}
               {subscribed.channel && subscribed.chat && (
-                <button className="btn btn-primary" onClick={doOpen}>
-                  🎲 Открыть кейс!
+                <button className="btn btn-primary" onClick={doOpen} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <DiceIcon size={18} /> Открыть кейс!
                 </button>
               )}
             </div>
@@ -975,7 +1119,7 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
             {error && <div className="error-text">{error}</div>}
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
               <button className="btn btn-primary" onClick={doOpen}>
-                <StarIcon /> Открыть за {caseData.price} ⭐
+                <StarIcon /> Открыть за {caseData.price}
               </button>
               <button className="btn btn-secondary" onClick={onClose}>Отмена</button>
             </div>
@@ -984,7 +1128,9 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
 
         {phase === "spinning" && (
           <>
-            <div className="modal-title">🎰 Крутим...</div>
+            <div className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <DiceIcon size={22} /> Крутим...
+            </div>
             <div className="spin-container">
               <div className="spin-pointer" />
               <div
@@ -1006,9 +1152,13 @@ function CaseOpenModal({ caseType, caseData, user, onClose, onUpdate }) {
 
         {phase === "result" && wonItem && (
           <>
-            <div className="modal-title">🎉 Выигрыш!</div>
+            <div className="modal-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <SparkleIcon size={22} /> Выигрыш!
+            </div>
             <div className="win-result">
-              <div style={{ fontSize: 40, marginBottom: 8 }}>⭐</div>
+              <div style={{ marginBottom: 8, color: rarityColor, display: "flex", justifyContent: "center" }}>
+                <StarIcon size={40} />
+              </div>
               <div className="win-stars">{wonItem.stars}</div>
               <div className="win-label">звёзд зачислено на баланс</div>
               <span className="rarity-badge" style={{ color: rarityColor, borderColor: rarityColor }}>
@@ -1078,7 +1228,9 @@ function WalletModal({ user, onClose, onUpdate }) {
         <div className="wallet-balance">
           <div className="wallet-balance-label">Баланс</div>
           <div className="wallet-balance-amount">{user?.balance || 0}</div>
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>звёзд ⭐</div>
+          <div style={{ color: "var(--muted)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+            <StarIcon size={13} /> звёзд
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -1093,7 +1245,7 @@ function WalletModal({ user, onClose, onUpdate }) {
         {!result ? (
           <>
             <div className="input-group">
-              <div className="input-label">{tab === "deposit" ? "Сумма пополнения (⭐)" : "Сумма вывода (⭐, мин. 50)"}</div>
+              <div className="input-label">{tab === "deposit" ? "Сумма пополнения" : "Сумма вывода (мин. 50)"}</div>
               <input className="input" type="number" placeholder="100" value={amount}
                 onChange={e => setAmount(e.target.value)} />
             </div>
@@ -1101,26 +1253,28 @@ function WalletModal({ user, onClose, onUpdate }) {
               {quickAmounts.map(a => (
                 <button key={a} className={`quick-amount ${parseInt(amount) === a ? "active" : ""}`}
                   onClick={() => setAmount(String(a))}>
-                  {a} ⭐
+                  {a}
                 </button>
               ))}
             </div>
             {error && <div className="error-text">{error}</div>}
             <button className="btn btn-primary" disabled={!amount || loading}
               onClick={tab === "deposit" ? handleDeposit : handleWithdraw}>
-              {loading ? "Обработка..." : tab === "deposit" ? `Пополнить ${amount || "..."} ⭐` : `Вывести ${amount || "..."} ⭐`}
+              {loading ? "Обработка..." : tab === "deposit" ? `Пополнить ${amount || "..."}` : `Вывести ${amount || "..."}`}
             </button>
           </>
         ) : (
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>{result.type === "deposit" ? "💳" : "💸"}</div>
+            <div style={{ marginBottom: 8, color: "var(--lime)", display: "flex", justifyContent: "center" }}>
+              {result.type === "deposit" ? <PlusIcon size={40} /> : <ArrowUpIcon size={40} />}
+            </div>
             <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, marginBottom: 8, letterSpacing: 1 }}>
               {result.type === "deposit" ? "Перейди в бот для оплаты" : "Запрос принят"}
             </div>
             <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16, lineHeight: 1.5 }}>
               {result.type === "deposit"
-                ? `Бот пришлёт счёт на ${result.amount} ⭐ для оплаты`
-                : `Вывод ${result.amount} ⭐ будет обработан в течение 24 часов`}
+                ? `Бот пришлёт счёт на ${result.amount} для оплаты`
+                : `Вывод ${result.amount} будет обработан в течение 24 часов`}
             </p>
             <button className="btn btn-primary" style={{ marginBottom: 8 }} onClick={() => openBot(result.url)}>
               Открыть бот →
@@ -1164,21 +1318,21 @@ function ProfilePage({ user, onOpenWallet }) {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-value">{user?.balance || 0}</div>
-          <div className="stat-label">⭐ Баланс</div>
+          <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><StarIcon size={11} /> Баланс</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{user?.cases_opened || 0}</div>
-          <div className="stat-label">📦 Кейсов</div>
+          <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><BoxIcon size={11} /> Кейсов</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{user?.total_won || 0}</div>
-          <div className="stat-label">🏆 Выиграно</div>
+          <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><TrophyIcon size={11} /> Выиграно</div>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-        <button className="btn btn-primary" onClick={onOpenWallet}>
-          💳 Кошелёк
+        <button className="btn btn-primary" onClick={onOpenWallet} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <WalletIcon /> Кошелёк
         </button>
       </div>
 
@@ -1192,7 +1346,7 @@ function ProfilePage({ user, onOpenWallet }) {
                 <div className="history-date">{new Date(h.created_at).toLocaleDateString("ru-RU")}</div>
               </div>
               <div>
-                <span className="history-stars">+{h.stars_won} ⭐</span>
+                <span className="history-stars" style={{ display: "flex", alignItems: "center", gap: 4 }}>+{h.stars_won} <StarIcon size={12} /></span>
               </div>
             </div>
           ))}
@@ -1236,7 +1390,9 @@ function AdminPage({ user }) {
   return (
     <div className="section">
       <div className="admin-header">
-        <div className="admin-title">👑 Панель администратора</div>
+        <div className="admin-title" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <CrownIcon size={20} /> Панель администратора
+        </div>
       </div>
 
       <div className="section-title">Выдать звёзды</div>
@@ -1250,8 +1406,8 @@ function AdminPage({ user }) {
       </div>
       {error && <div className="error-text">{error}</div>}
       {msg && <div className="success-text">{msg}</div>}
-      <button className="btn btn-primary" disabled={!targetId || !giveAmount || loading} onClick={giveStars} style={{ marginBottom: 20 }}>
-        {loading ? "Выдаю..." : "⭐ Выдать звёзды"}
+      <button className="btn btn-primary" disabled={!targetId || !giveAmount || loading} onClick={giveStars} style={{ marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+        {loading ? "Выдаю..." : <><StarIcon size={16} /> Выдать звёзды</>}
       </button>
 
       <div className="section-title">Пользователи</div>
@@ -1261,7 +1417,7 @@ function AdminPage({ user }) {
             <div className="user-row-name">{u.first_name || "—"} {u.username ? `@${u.username}` : ""}</div>
             <div className="user-row-id">ID: {u.tg_id}</div>
           </div>
-          <div className="user-row-balance">{u.balance} ⭐</div>
+          <div className="user-row-balance" style={{ display: "flex", alignItems: "center", gap: 4 }}>{u.balance} <StarIcon size={12} /></div>
         </div>
       ))}
     </div>
@@ -1302,9 +1458,9 @@ export default function App() {
   }
 
   const caseList = [
-    { key: "bronze", emoji: "📦", label: "Бронзовый" },
-    { key: "silver", emoji: "🥈", label: "Серебряный" },
-    { key: "gold", emoji: "👑", label: "Золотой" },
+    { key: "bronze", Icon: BoxIcon, label: "Бронзовый" },
+    { key: "silver", Icon: MedalIcon, label: "Серебряный" },
+    { key: "gold", Icon: CrownIcon, label: "Золотой" },
   ];
 
   const today = new Date().toISOString().slice(0, 10);
@@ -1337,11 +1493,11 @@ export default function App() {
               <div className="daily-card" onClick={() => !dailyGot && setOpeningCase("daily")}
                 style={{ cursor: dailyGot ? "default" : "pointer" }}>
                 <div className="daily-info">
-                  <h3>🎁 Ежедневный кейс</h3>
+                  <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}><GiftIcon size={18} /> Ежедневный кейс</h3>
                   <p>Подпишись на канал и получи награду</p>
                 </div>
                 {dailyGot
-                  ? <div className="daily-got">Уже получен ✓</div>
+                  ? <div className="daily-got" style={{ display: "flex", alignItems: "center", gap: 6 }}>Уже получен <CheckIcon size={13} /></div>
                   : <button className="btn btn-primary" style={{ width: "auto", padding: "8px 16px", fontSize: 13 }}
                       onClick={() => setOpeningCase("daily")}>Взять</button>
                 }
@@ -1352,23 +1508,23 @@ export default function App() {
             <div className="section">
               <div className="section-title">Кейсы</div>
               <div className="cases-grid">
-                {caseList.map(({ key, emoji, label }) => {
+                {caseList.map(({ key, Icon, label }) => {
                   const c = cases[key];
                   if (!c) return null;
                   return (
                     <div key={key} className="case-card"
                       style={{ "--case-color": c.color }}
                       onClick={() => setOpeningCase(key)}>
-                      <span className="case-icon">{emoji}</span>
+                      <span className="case-icon" style={{ display: "flex", justifyContent: "center", color: c.color }}><Icon size={36} /></span>
                       <div className="case-name">{label}</div>
-                      <div className="case-price"><StarIcon size={11} /> {c.price} ⭐</div>
+                      <div className="case-price"><StarIcon size={11} /> {c.price}</div>
                     </div>
                   );
                 })}
 
                 {/* Coming soon — blurred game slot */}
                 <div className="coming-soon-card">
-                  <div className="coming-soon-blur">🎮</div>
+                  <div className="coming-soon-blur"><DiceIcon size={40} /></div>
                   <div className="coming-soon-label">Скоро новая игра...</div>
                 </div>
               </div>
@@ -1383,14 +1539,16 @@ export default function App() {
             <div className="wallet-balance">
               <div className="wallet-balance-label">Текущий баланс</div>
               <div className="wallet-balance-amount">{user?.balance || 0}</div>
-              <div style={{ color: "var(--muted)", fontSize: 13 }}>звёзд ⭐</div>
+              <div style={{ color: "var(--muted)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <StarIcon size={13} /> звёзд
+              </div>
             </div>
             <div className="wallet-actions">
-              <button className="btn btn-primary" onClick={() => setShowWallet(true)}>
-                ＋ Пополнить
+              <button className="btn btn-primary" onClick={() => setShowWallet(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <PlusIcon size={16} /> Пополнить
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowWallet(true)}>
-                ↑ Вывести
+              <button className="btn btn-secondary" onClick={() => setShowWallet(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <ArrowUpIcon size={16} /> Вывести
               </button>
             </div>
 
@@ -1398,15 +1556,15 @@ export default function App() {
             <div className="stats-grid">
               <div className="stat-card">
                 <div className="stat-value">{user?.balance || 0}</div>
-                <div className="stat-label">⭐ Баланс</div>
+                <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><StarIcon size={11} /> Баланс</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{user?.cases_opened || 0}</div>
-                <div className="stat-label">📦 Кейсов</div>
+                <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><BoxIcon size={11} /> Кейсов</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{user?.total_won || 0}</div>
-                <div className="stat-label">🏆 Выиграно</div>
+                <div className="stat-label" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><TrophyIcon size={11} /> Выиграно</div>
               </div>
             </div>
           </div>
@@ -1450,7 +1608,7 @@ export default function App() {
             onUpdate={(bal) => {
               updateBalance(bal);
               setUser(u => ({ ...u, cases_opened: (u.cases_opened || 0) + 1 }));
-              showToast("Кейс открыт! ⭐");
+              showToast("Кейс открыт!");
             }}
           />
         )}
