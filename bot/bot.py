@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8667961704:AAGLpbPSMvcqXDD1sgmRTG2_FtwfHxpZJWI")
 BOT_USERNAME = os.getenv("BOT_USERNAME", "justgift_bot")
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://your-frontend.vercel.app")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://automatic-funicular-ov9e.vercel.app")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 INTERNAL_SECRET = os.getenv("INTERNAL_SECRET", "justgift_internal_secret")
 
